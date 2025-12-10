@@ -173,6 +173,11 @@ export default function Home() {
               ファイルアップロード
             </h2>
             <FileUploader onFilesChange={handleFilesChange} />
+            <p className="mt-2 text-xs text-gray-500">
+              アップロードした FASTA/GFF/遺伝子リストは Pyodide 内で「input.fa / input.gff / genes.txt」として扱われます。
+              <br/>
+              ユーザーコードの出力は「result.fasta」に書き出してください（ここからダウンロードします）。
+            </p>
           </section>
 
           <section>
