@@ -13,12 +13,12 @@ function getEnv(name: string): string {
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     const bucket = getEnv("GCS_BUCKET");
     const jobPrefix = (process.env.GCS_JOB_PREFIX || "jobs").replace(/\/+$/g, "");
-    const jobId = params.jobId;
+    const { jobId } = await params;
     const basePrefix = `${jobPrefix}/${jobId}`;
 
     const statusText = await downloadObjectText(

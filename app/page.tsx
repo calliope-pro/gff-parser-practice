@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { FileUploader } from "@/components/FileUploader";
-import { ModeSelector } from "@/components/ModeSelector";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { ValidationDisplay } from "@/components/ValidationDisplay";
 import { validateFasta, type ValidationResult } from "@/lib/validator";
@@ -41,6 +40,10 @@ export default function Home() {
 
   const handleFilesChange = (newFiles: typeof files) => {
     setFiles(newFiles);
+  };
+
+  const handleModeChange = (newMode: "dna" | "amino") => {
+    setMode(newMode);
   };
 
   const handleExecute = async () => {
@@ -160,7 +163,7 @@ export default function Home() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               ファイルアップロード
             </h2>
-            <FileUploader onFilesChange={handleFilesChange} />
+            <FileUploader onFilesChange={handleFilesChange} onModeChange={handleModeChange} />
             <p className="mt-2 text-xs text-gray-500">
               参照データは GCS 上のデータセットを使用します。
               <br />
@@ -168,10 +171,6 @@ export default function Home() {
               <br />
               ユーザーコードの出力は result.fasta に書き出してください（ここからダウンロードします）。
             </p>
-          </section>
-
-          <section>
-            <ModeSelector mode={mode} onModeChange={setMode} />
           </section>
 
           <section>

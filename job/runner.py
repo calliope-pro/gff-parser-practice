@@ -54,6 +54,7 @@ def main() -> None:
     job_id = getenv_required("JOB_ID")
     reference_gff = getenv_required("REFERENCE_GFF_OBJECT")
     reference_fasta = getenv_required("REFERENCE_FASTA_OBJECT")
+    reference_answer = getenv_required("REFERENCE_ANSWER_OBJECT")
     mode = os.environ.get("OUTPUT_MODE", "dna")
 
     base_prefix = f"{job_prefix}/{job_id}"
@@ -61,6 +62,7 @@ def main() -> None:
     genes_object = f"{base_prefix}/genes.txt"
     requirements_object = f"{base_prefix}/requirements.txt"
     result_object = f"{base_prefix}/result.fasta"
+    answer_object = f"{base_prefix}/answer.fasta"
     status_object = f"{base_prefix}/status.json"
     user_log_object = f"{base_prefix}/user.log"
 
@@ -77,6 +79,9 @@ def main() -> None:
 
     download_blob(client, bucket, reference_gff, input_gff)
     download_blob(client, bucket, reference_fasta, input_fasta)
+
+    answer_path = workdir / "answer.fasta"
+    download_blob(client, bucket, reference_answer, answer_path)
 
     if not download_blob(client, bucket, genes_object, genes_path):
         raise RuntimeError("genes.txt not found in GCS")
@@ -115,11 +120,14 @@ def main() -> None:
 
     user_result = run_command([str(python_path), str(user_code_path)], env=base_env)
     status["user"] = user_result
-    write_text(workdir / "user.log", user_result["stdout"] + user_result["stderr"])
+    write_text(workdir / "user.log", str(user_result["stdout"]) + str(user_result["stderr"]))
 
     result_path = workdir / "result.fasta"
     if result_path.exists():
         upload_blob(client, bucket, result_path, result_object)
+
+    if answer_path.exists():
+        upload_blob(client, bucket, answer_path, answer_object)
 
     write_text(workdir / "status.json", json.dumps(status, ensure_ascii=True))
     upload_blob(client, bucket, workdir / "status.json", status_object)

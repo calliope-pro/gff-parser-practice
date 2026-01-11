@@ -127,11 +127,17 @@ export async function downloadObjectText(
     bucket
   )}/o/${encodeURIComponent(objectName)}?alt=media`;
 
+  console.log("[DEBUG] Download URL:", url);
+  console.log("[DEBUG] Bucket:", bucket);
+  console.log("[DEBUG] Object:", objectName);
+
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
+
+  console.log("[DEBUG] Response status:", response.status);
 
   if (response.status === 404) {
     return null;

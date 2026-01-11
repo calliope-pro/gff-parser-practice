@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         JOB_ID: jobId,
         REFERENCE_GFF_OBJECT: dataset.gffObject,
         REFERENCE_FASTA_OBJECT: dataset.fastaObject,
+        REFERENCE_ANSWER_OBJECT: dataset.answerObject,
         OUTPUT_MODE: mode,
       },
     });

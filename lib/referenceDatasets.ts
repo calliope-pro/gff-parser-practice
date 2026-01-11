@@ -5,6 +5,8 @@ export type ReferenceDataset = {
   label: string;
   gffObject: string;
   fastaObject: string;
+  answerObject: string;
+  mode: "dna" | "amino";
 };
 
 export const referenceDatasets = datasets as ReferenceDataset[];

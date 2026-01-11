@@ -10,9 +10,10 @@ type FileUploaderProps = {
     pythonCode: File | null;
     requirements: File | null;
   }) => void;
+  onModeChange: (mode: "dna" | "amino") => void;
 };
 
-export function FileUploader({ onFilesChange }: FileUploaderProps) {
+export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps) {
   const [files, setFiles] = useState<{
     datasetId: string;
     geneList: File | null;
@@ -44,6 +45,11 @@ export function FileUploader({ onFilesChange }: FileUploaderProps) {
     };
     setFiles(newFiles);
     onFilesChange(newFiles);
+
+    const dataset = referenceDatasets.find((d) => d.id === datasetId);
+    if (dataset) {
+      onModeChange(dataset.mode);
+    }
   };
 
   const selectedDataset = useMemo(
@@ -78,6 +84,8 @@ export function FileUploader({ onFilesChange }: FileUploaderProps) {
             GFF: {selectedDataset.gffObject}
             <br />
             FASTA: {selectedDataset.fastaObject}
+            <br />
+            モード: {selectedDataset.mode === "dna" ? "DNA配列" : "アミノ酸配列"}
           </p>
         )}
       </div>
