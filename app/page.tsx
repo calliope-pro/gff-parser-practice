@@ -223,6 +223,7 @@ export default function Home() {
                   <li>作業ディレクトリ: <code className="bg-white px-1 rounded">/work</code></li>
                   <li>入力ファイル: <code className="bg-white px-1 rounded">input.gff</code>, <code className="bg-white px-1 rounded">input.fa</code>, <code className="bg-white px-1 rounded">genes.txt</code> (すべて参照データセットから自動配置)</li>
                   <li>出力: <code className="bg-white px-1 rounded">result.fasta</code> に書き出す</li>
+                  <li>実行コマンド: <code className="bg-white px-1 rounded">/usr/bin/time -v python user.py</code> (仮想環境内)</li>
                 </ul>
               </div>
 
@@ -259,7 +260,7 @@ MRLGSP...（アミノ酸配列）`}
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               ファイルアップロード
             </h2>
-            <FileUploader onFilesChange={handleFilesChange} onModeChange={handleModeChange} />
+            <FileUploader onFilesChange={handleFilesChange} onModeChange={handleModeChange} disabled={isLoading} />
           </section>
 
           <section>

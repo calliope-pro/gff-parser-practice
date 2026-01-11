@@ -106,6 +106,7 @@ gff-parser-practice/
   - Python 3.11
   - 1 vCPU
   - 4 GiB RAM
+  - 仮想環境（venv）内で実行
 - 参照データをGCSからダウンロード:
   - GFF/FASTA（input.gff / input.fa）
   - 遺伝子リスト（genes.txt）
@@ -114,6 +115,15 @@ gff-parser-practice/
   - user.py
   - requirements.txt（存在する場合）
 - `/work` ディレクトリで実行
+- 実行コマンド:
+  ```bash
+  # 仮想環境を作成
+  python -m venv --system-site-packages /work/venv
+  # requirements.txt があればインストール
+  /work/venv/bin/pip install --no-cache-dir -r requirements.txt
+  # ユーザーコードを実行（メモリ・時間計測付き）
+  /usr/bin/time -v -o time_output.txt /work/venv/bin/python user.py
+  ```
 - 環境変数:
   - `REFERENCE_GFF_OBJECT`: GFF参照パス
   - `REFERENCE_FASTA_OBJECT`: FASTA参照パス

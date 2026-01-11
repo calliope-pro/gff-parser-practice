@@ -160,6 +160,11 @@ yarn dev
   - `input.fa` - 参照FASTAファイル（GCSから自動配置）
   - `genes.txt` - 遺伝子名リスト（GCSから自動配置）
   - `user.py` - ユーザーのPythonコード
+- 実行コマンド:
+  ```bash
+  # 仮想環境内で実行（メモリ・時間計測付き）
+  /usr/bin/time -v -o time_output.txt python user.py
+  ```
 
 **出力:**
 - `result.fasta` - ユーザーコードの出力（ダウンロード可能）

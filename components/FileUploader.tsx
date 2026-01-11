@@ -10,9 +10,10 @@ type FileUploaderProps = {
     requirements: File | null;
   }) => void;
   onModeChange: (mode: "dna" | "amino") => void;
+  disabled?: boolean;
 };
 
-export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps) {
+export function FileUploader({ onFilesChange, onModeChange, disabled = false }: FileUploaderProps) {
   const [files, setFiles] = useState<{
     datasetId: string;
     pythonCode: File | null;
@@ -67,7 +68,8 @@ export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps)
           id="reference-dataset"
           value={files.datasetId}
           onChange={(e) => handleDatasetChange(e.target.value)}
-          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
+          disabled={disabled}
+          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">選択してください</option>
           {referenceDatasets.map((dataset) => (
@@ -103,7 +105,8 @@ export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps)
           onChange={(e) =>
             handleFileChange("pythonCode", e.target.files?.[0] || null)
           }
-          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+          disabled={disabled}
+          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
@@ -121,7 +124,8 @@ export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps)
           onChange={(e) =>
             handleFileChange("requirements", e.target.files?.[0] || null)
           }
-          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+          disabled={disabled}
+          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
     </div>
