@@ -1,6 +1,6 @@
 # GFF Parser Practice
 
-教育用途の遺伝子配列抽出トレーニングツール。  
+教育用途の遺伝子配列抽出トレーニングツール。
 ユーザーがアップロードした Python コードを Cloud Run Job で実行し、GCS の参照データと照合します。
 
 ## 仕組み
@@ -9,125 +9,155 @@
 - API: Next.js Route Handler → GCSに入力を保存 → Cloud Run Job起動
 - 実行: Cloud Run Job（`job/`）が GCS から入力を取得し `/work` で実行
 - 結果: `result.fasta` / ログ / status.json を GCS に保存
-- 検証: `answer.fasta` は別途 GCS に配置（ある場合のみ検証）
+- 検証: データセットごとに `answer.fasta` を自動ダウンロードして検証
 
 ## セットアップ
 
-### 0) GCPの設定
-
-最小構成の手順です。
+### 0) GCPの設定（GUIベース）
 
 #### 0-1. プロジェクト作成 + 課金有効化
-GCP Consoleで新規プロジェクトを作成し、課金アカウントを紐付けます。
+1. [GCP Console](https://console.cloud.google.com/)にアクセス
+2. 新しいプロジェクトを作成
+3. 課金を有効化
 
 #### 0-2. 必要APIの有効化
-```bash
-gcloud services enable \
-  run.googleapis.com \
-  cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com \
-  storage.googleapis.com \
-  iam.googleapis.com \
-  serviceusage.googleapis.com
-```
+GCP Console → APIとサービス → 有効なAPIとサービス → 「APIとサービスの有効化」から以下を有効化：
+- Cloud Run API
+- Cloud Build API
+- Artifact Registry API
+- Cloud Storage API
 
 #### 0-3. GCSバケット作成
-```bash
-gcloud storage buckets create gs://YOUR_BUCKET \
-  --location=asia-northeast1 \
-  --uniform-bucket-level-access
+1. Cloud Storage → バケット → 作成
+2. 名前を入力（例: `gff-practice`）
+3. ロケーション: `asia-northeast1`
+4. アクセス制御: 均一
+5. 作成
+
+#### 0-4. 参照データと正解データをGCSへアップロード
+**GCS Console**で以下のフォルダ構造を作成してファイルをアップロード：
+
+```
+YOUR_BUCKET/
+├── references/
+│   ├── ref_GRCh38_scaffolds.gff3
+│   ├── hs_ref_GRCh38_chr21.fa
+│   ├── saccharomyces_cerevisiae_R64-1-1_20110208_annotation.gff
+│   └── saccharomyces_cerevisiae_R64-1-1_20110208_sequences.fasta
+└── answers/
+    ├── human_answer.fasta
+    └── yeast_answer.fasta
 ```
 
-#### 0-4. 参照データをGCSへアップロード
-```bash
-gcloud storage cp examples/ref_GRCh38_scaffolds.gff3 gs://YOUR_BUCKET/references/
-gcloud storage cp examples/hs_ref_GRCh38_chr21.fa gs://YOUR_BUCKET/references/
-```
-`data/reference-datasets.json` の `gffObject` / `fastaObject` をこのパスに合わせます。
+`data/reference-datasets.json` でこれらのパスを指定します。
 
-#### 0-5. サービスアカウント作成
-**Vercel用（API）**: Cloud Run Job起動 + GCS書き込み  
-**ジョブ実行用**: GCS読み書き
+#### 0-5. サービスアカウント作成と権限付与
 
-```bash
-gcloud iam service-accounts create vercel-api
-gcloud projects add-iam-policy-binding YOUR_PROJECT \
-  --member="serviceAccount:vercel-api@YOUR_PROJECT.iam.gserviceaccount.com" \
-  --role="roles/run.admin"
-gcloud projects add-iam-policy-binding YOUR_PROJECT \
-  --member="serviceAccount:vercel-api@YOUR_PROJECT.iam.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountUser"
-gcloud projects add-iam-policy-binding YOUR_PROJECT \
-  --member="serviceAccount:vercel-api@YOUR_PROJECT.iam.gserviceaccount.com" \
-  --role="roles/storage.objectAdmin"
+**1. vercel-api サービスアカウント（API用）**
+1. IAM と管理 → サービスアカウント → サービスアカウントを作成
+2. 名前: `vercel-api`
+3. 作成して続行
+4. IAM → プリンシパルを追加 → `vercel-api@YOUR_PROJECT.iam.gserviceaccount.com` に以下のロールを付与：
+   - Cloud Run 管理者（`roles/run.admin`）
+   - Storage オブジェクト管理者（`roles/storage.objectAdmin`）
+   - サービス アカウント ユーザー（`roles/iam.serviceAccountUser`）
 
-gcloud iam service-accounts create job-runtime
-gcloud projects add-iam-policy-binding YOUR_PROJECT \
-  --member="serviceAccount:job-runtime@YOUR_PROJECT.iam.gserviceaccount.com" \
-  --role="roles/storage.objectAdmin"
-```
+**2. job-runtime サービスアカウント（ジョブ実行用）**
+1. サービスアカウントを作成
+2. 名前: `job-runtime`
+3. IAM → `job-runtime@YOUR_PROJECT.iam.gserviceaccount.com` に以下を付与：
+   - Storage オブジェクト管理者（`roles/storage.objectAdmin`）
+4. サービスアカウント → `job-runtime` → 権限タブ → アクセス権を付与
+   - プリンシパル: `vercel-api@YOUR_PROJECT.iam.gserviceaccount.com`
+   - ロール: サービス アカウント ユーザー
+
+**3. vercel-api のJSONキーをダウンロード**
+1. サービスアカウント → `vercel-api` → キータブ
+2. 鍵を追加 → 新しい鍵を作成 → JSON → 作成
+3. ダウンロードしたJSONファイルを保存（後で使用）
 
 #### 0-6. Cloud Run Job作成
-```bash
-gcloud artifacts repositories create gff-runner \
-  --repository-format=docker \
-  --location=asia-northeast1
 
-gcloud builds submit \
-  --tag asia-northeast1-docker.pkg.dev/YOUR_PROJECT/gff-runner/gff-runner:latest .
+**1. Artifact Registry リポジトリ作成**
+1. Artifact Registry → リポジトリを作成
+2. 名前: `gff-runner`
+3. 形式: Docker
+4. ロケーション: `asia-northeast1`
+5. 作成
 
-gcloud run jobs create gff-parser-job \
-  --image asia-northeast1-docker.pkg.dev/YOUR_PROJECT/gff-runner/gff-runner:latest \
-  --region asia-northeast1 \
-  --service-account job-runtime@YOUR_PROJECT.iam.gserviceaccount.com
-```
+**2. GitHubリポジトリと連携してビルド**
+1. プロジェクトルートに `cloudbuild.yaml` を配置（既に存在）
+2. Cloud Build → トリガー → リポジトリを接続
+3. GitHub を選択してこのリポジトリを接続
+4. トリガーを作成
+   - 名前: `build-gff-runner`
+   - イベント: 手動呼び出し
+   - ソース: main ブランチ
+   - 構成: Cloud Build 構成ファイル
+   - Cloud Build 構成ファイルの場所: `cloudbuild.yaml`
+5. 作成後、「実行」をクリックしてビルド
 
-#### 0-7. Vercelの環境変数
-`.env.sample` に合わせて設定します。  
-`GCP_SERVICE_ACCOUNT_KEY_JSON` は **vercel-api** のJSONキー全文を貼り付けます。
+**3. Cloud Run Job 作成**
+1. Cloud Run → ジョブ → ジョブを作成
+2. ジョブ名: `gff-runner`
+3. リージョン: `asia-northeast3`
+4. コンテナイメージ: `asia-northeast1-docker.pkg.dev/YOUR_PROJECT/gff-runner/gff-runner:latest`
+5. サービスアカウント: `job-runtime@YOUR_PROJECT.iam.gserviceaccount.com`
+6. 作成
 
-### 1) GCSに参照データを配置
+#### 0-7. Vercelの環境変数設定
+`.env.local` または Vercel ダッシュボードで以下を設定：
+- `GCP_PROJECT_ID`: プロジェクトID
+- `GCP_REGION`: `asia-northeast3`（ジョブのリージョン）
+- `GCP_SERVICE_ACCOUNT_KEY_JSON`: vercel-api のJSONキー全文
+- `CLOUD_RUN_JOB_NAME`: `gff-runner`
+- `GCS_BUCKET`: バケット名
+- `GCS_JOB_PREFIX`: `jobs`
 
-GFF/FASTA を GCS にアップロードし、`data/reference-datasets.json` に対応するオブジェクト名を設定します。
-
-例:
-- `references/ref_GRCh38_scaffolds.gff3`
-- `references/hs_ref_GRCh38_chr21.fa`
-
-### 2) Cloud Run Job をデプロイ
-
-`job/Dockerfile` を使って Cloud Run Job を作成します。  
-実行用サービスアカウントに GCS の読み書き権限を付与してください。
-
-### 3) 環境変数
-
-`.env.sample` を参照して Vercel / ローカルに設定します。
-
-必要な変数:
-- `GCP_PROJECT_ID`
-- `GCP_REGION`
-- `GCP_SERVICE_ACCOUNT_KEY_JSON`
-- `CLOUD_RUN_JOB_NAME`
-- `GCS_BUCKET`
-- `GCS_JOB_PREFIX`（任意）
-
-### 4) ローカル起動
+### ローカル起動
 
 ```bash
 yarn install
 yarn dev
 ```
 
+## データセット構造
+
+`data/reference-datasets.json` で各データセットを定義：
+
+```json
+{
+  "id": "yeast_r64",
+  "label": "S. cerevisiae R64-1-1",
+  "gffObject": "references/saccharomyces_cerevisiae_R64-1-1_20110208_annotation.gff",
+  "fastaObject": "references/saccharomyces_cerevisiae_R64-1-1_20110208_sequences.fasta",
+  "answerObject": "answers/yeast_answer.fasta",
+  "mode": "dna"
+}
+```
+
+- **yeast**: DNA配列抽出モード
+- **human (GRCh38 chr21)**: アミノ酸配列抽出モード
+
 ## 実行時の入出力
 
-- 参照データ: GCS の固定パス（データセット選択で切替）
-- 入力ファイル: `genes.txt`, `user.py`, `requirements.txt`（任意）
-- 作業ディレクトリ: `/work`
-- 出力: `result.fasta`（ユーザー出力）
-- 検証用: `answer.fasta`（任意。存在しない場合は検証をスキップ）
+**入力:**
+- データセット選択（yeast / human）→ モードが自動設定される
+- 遺伝子名リスト（`.txt`）
+- Pythonコード（`.py`）
+- requirements.txt（任意）
 
-`answer.fasta` を使って検証する場合は、ジョブIDを使って以下に配置します。
-`gs://{GCS_BUCKET}/{GCS_JOB_PREFIX}/{jobId}/answer.fasta`
+**実行環境（/work）:**
+- `input.gff` - 参照GFFファイル
+- `input.fa` - 参照FASTAファイル
+- `genes.txt` - 遺伝子名リスト
+- `user.py` - ユーザーのPythonコード
+- 環境変数 `OUTPUT_MODE` - `dna` または `amino`
+
+**出力:**
+- `result.fasta` - ユーザーコードの出力（ダウンロード可能）
+- 標準出力/エラー出力
+- 検証結果（answer.fastaと自動比較）
 
 ## 注意
 

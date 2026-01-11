@@ -4,6 +4,7 @@
     "label": "GRCh38 chr21",
     "gffObject": "references/ref_GRCh38_scaffolds.gff3",
     "fastaObject": "references/hs_ref_GRCh38_chr21.fa",
+    "genesObject": "references/genes_human.txt",
     "answerObject": "answers/human_answer.fasta",
     "mode": "amino"
   },
@@ -12,6 +13,7 @@
     "label": "S. cerevisiae R64-1-1",
     "gffObject": "references/saccharomyces_cerevisiae_R64-1-1_20110208_annotation.gff",
     "fastaObject": "references/saccharomyces_cerevisiae_R64-1-1_20110208_sequences.fasta",
+    "genesObject": "references/genes_yeast.txt",
     "answerObject": "answers/yeast_answer.fasta",
     "mode": "dna"
   }

@@ -5,6 +5,7 @@ export type ReferenceDataset = {
   label: string;
   gffObject: string;
   fastaObject: string;
+  genesObject: string;
   answerObject: string;
   mode: "dna" | "amino";
 };

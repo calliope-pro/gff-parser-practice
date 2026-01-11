@@ -19,13 +19,12 @@ export async function POST(request: NextRequest) {
 
     const datasetId = String(formData.get("datasetId") || "").trim();
     const mode = String(formData.get("mode") || "dna").trim();
-    const geneListFile = formData.get("geneList") as File | null;
     const pythonCodeFile = formData.get("pythonCode") as File | null;
     const requirementsFile = formData.get("requirements") as File | null;
 
-    if (!datasetId || !geneListFile || !pythonCodeFile) {
+    if (!datasetId || !pythonCodeFile) {
       return NextResponse.json(
-        { error: "Missing datasetId, geneList, or pythonCode" },
+        { error: "Missing datasetId or pythonCode" },
         { status: 400 }
       );
     }
@@ -60,12 +59,6 @@ export async function POST(request: NextRequest) {
       await pythonCodeFile.arrayBuffer(),
       "text/x-python"
     );
-    await uploadObject(
-      bucket,
-      `${basePrefix}/genes.txt`,
-      await geneListFile.arrayBuffer(),
-      "text/plain"
-    );
 
     if (requirementsFile && requirementsFile.size > 0) {
       await uploadObject(
@@ -86,6 +79,7 @@ export async function POST(request: NextRequest) {
         JOB_ID: jobId,
         REFERENCE_GFF_OBJECT: dataset.gffObject,
         REFERENCE_FASTA_OBJECT: dataset.fastaObject,
+        REFERENCE_GENES_OBJECT: dataset.genesObject,
         REFERENCE_ANSWER_OBJECT: dataset.answerObject,
         OUTPUT_MODE: mode,
       },

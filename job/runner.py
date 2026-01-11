@@ -54,12 +54,12 @@ def main() -> None:
     job_id = getenv_required("JOB_ID")
     reference_gff = getenv_required("REFERENCE_GFF_OBJECT")
     reference_fasta = getenv_required("REFERENCE_FASTA_OBJECT")
+    reference_genes = getenv_required("REFERENCE_GENES_OBJECT")
     reference_answer = getenv_required("REFERENCE_ANSWER_OBJECT")
     mode = os.environ.get("OUTPUT_MODE", "dna")
 
     base_prefix = f"{job_prefix}/{job_id}"
     user_code_object = f"{base_prefix}/user.py"
-    genes_object = f"{base_prefix}/genes.txt"
     requirements_object = f"{base_prefix}/requirements.txt"
     result_object = f"{base_prefix}/result.fasta"
     answer_object = f"{base_prefix}/answer.fasta"
@@ -77,14 +77,16 @@ def main() -> None:
     user_code_path = workdir / "user.py"
     requirements_path = workdir / "requirements.txt"
 
-    download_blob(client, bucket, reference_gff, input_gff)
-    download_blob(client, bucket, reference_fasta, input_fasta)
+    if not download_blob(client, bucket, reference_gff, input_gff):
+        raise RuntimeError(f"Reference GFF not found: gs://{bucket}/{reference_gff}")
+    if not download_blob(client, bucket, reference_fasta, input_fasta):
+        raise RuntimeError(f"Reference FASTA not found: gs://{bucket}/{reference_fasta}")
+    if not download_blob(client, bucket, reference_genes, genes_path):
+        raise RuntimeError(f"Reference genes.txt not found: gs://{bucket}/{reference_genes}")
 
     answer_path = workdir / "answer.fasta"
     download_blob(client, bucket, reference_answer, answer_path)
 
-    if not download_blob(client, bucket, genes_object, genes_path):
-        raise RuntimeError("genes.txt not found in GCS")
     if not download_blob(client, bucket, user_code_object, user_code_path):
         raise RuntimeError("user.py not found in GCS")
 

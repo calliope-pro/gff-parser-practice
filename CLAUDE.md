@@ -14,29 +14,35 @@
 ### 2.1 入力
 
 **入力（3種類 + データセット選択）**
-1. 参照データセット - GCSに配置済みのGFF/FASTAを選択
+1. 参照データセット - GCSに配置済みのGFF/FASTA/正解データを選択
+   - **Yeast (S. cerevisiae)**: DNA配列抽出モード
+   - **Human (GRCh38 chr21)**: アミノ酸配列抽出モード
 2. 遺伝子名リストTXT (.txt) - 抽出対象の遺伝子名リスト
 3. Pythonコードファイル (.py) - ユーザーが作成した実行コード
 4. requirements.txt（任意）
 
-**モード選択**
-- DNA配列抽出モード
-- アミノ酸配列抽出モード
+**モード**
+- データセット選択により自動設定（変更不可）
+- Yeast → DNA配列抽出
+- Human → アミノ酸配列抽出
 
 ### 2.2 実行
 
 - 「実行」ボタンをクリック
 - Vercel APIがGCSに入力ファイルを保存
 - Cloud Run JobでPythonコードを実行
-- 参照データはGCSの固定パスから読み込み
- - `answer.fasta` は必要に応じてGCSへ別途配置
+- 参照データ（GFF/FASTA）はGCSの固定パスから読み込み
+- 正解データ（answer.fasta）も自動的にダウンロードして検証用に配置
 
 ### 2.3 出力
 
 - 標準出力（stdout）の表示
 - エラーメッセージ（stderr）の表示
-- 実行結果の可視化
-- 検証結果（`answer.fasta` がある場合のみ）
+- result.fastaのダウンロード
+- 検証結果の表示（正解データとの自動比較）
+  - 全体正解/不正解
+  - 遺伝子ごとの詳細（配列の一致/不一致）
+  - 不正解の場合は差分表示
 
 ---
 
@@ -47,11 +53,12 @@
 - 教育目的のため、直感的な操作性を重視
 
 ### セクション構成
-1. **ヘッダー**: サービス名と簡単な説明
+1. **ヘッダー**: サービス名と説明
 2. **入力エリア**: データセット選択 + 3つのファイル入力（.txt, .py, requirements.txt）
-3. **モード選択**: ラジオボタンまたはトグル（DNA / アミノ酸）
-4. **実行ボタン**: 大きめで目立つボタン
-5. **結果表示エリア**: 出力とエラーを分けて表示
+   - データセット選択時にモード（DNA/アミノ酸）を表示
+3. **実行ボタン**: 大きめで目立つボタン
+4. **結果表示エリア**: 標準出力、エラー、result.fastaダウンロード
+5. **検証結果エリア**: 正解/不正解、遺伝子ごとの詳細
 
 ---
 
@@ -62,32 +69,39 @@
 gff-parser-practice/
 ├── app/
 │   ├── api/
-│   │   └── jobs/         # ジョブ起動・ステータス取得
+│   │   └── jobs/         # ジョブ起動・ステータス取得API
 │   ├── page.tsx          # メインページ
 │   └── layout.tsx
 ├── components/
-│   ├── FileUploader.tsx  # 入力コンポーネント
-│   ├── ModeSelector.tsx  # DNA/アミノ酸モード選択
-│   ├── ResultDisplay.tsx # 結果表示
-│   └── ValidationDisplay.tsx
+│   ├── FileUploader.tsx      # 入力コンポーネント
+│   ├── ResultDisplay.tsx     # 結果表示
+│   └── ValidationDisplay.tsx # 検証結果表示
 ├── data/
-│   └── reference-datasets.json # データセット一覧
+│   └── reference-datasets.json # データセット定義
+├── answers/
+│   ├── yeast_answer.fasta    # Yeast正解データ
+│   └── human_answer.fasta    # Human正解データ
+├── examples/
+│   ├── *.gff / *.fa          # 参照データ
+│   ├── one_fixed.py / two.py # 正解コード例
+│   └── *.txt                 # 遺伝子リスト例
 ├── job/
-│   ├── runner.py         # Cloud Run Jobの実行スクリプト
+│   ├── runner.py             # Cloud Run Job実行スクリプト
 │   └── Dockerfile
 ├── lib/
-│   ├── referenceDatasets.ts
-│   ├── validator.ts
+│   ├── referenceDatasets.ts  # データセット型定義
+│   ├── validator.ts          # FASTA検証ロジック
 │   └── server/
-│       └── gcp.ts
+│       └── gcp.ts            # GCS/Cloud Run操作
 └── ...
 ```
 
 ### Cloud Run Job
-- 参照データ（GFF/FASTA）はGCSの固定パスから取得
-- ジョブ入力と結果はGCSに保存
-- `OUTPUT_MODE` に応じてDNA/アミノ酸を出力
-- `answer.fasta` が存在する場合のみ検証を実施
+- 参照データ（GFF/FASTA）と正解データ（answer.fasta）をGCSからダウンロード
+- ユーザー入力ファイル（user.py、genes.txt、requirements.txt）をGCSからダウンロード
+- `/work` ディレクトリで実行
+- `OUTPUT_MODE` 環境変数（`dna` / `amino`）に応じて処理
+- 結果（result.fasta、ログ、status.json、answer.fasta）をGCSにアップロード
 
 ### API
 - `POST /api/jobs`: 入力アップロード + Cloud Run Job起動
@@ -104,6 +118,18 @@ gff-parser-practice/
 
 ---
 
-## 6. 今後の拡張可能性
+## 6. 実装済み機能
 
-- 正解データとの照合機能
+- ✅ データセット選択（Yeast/Human）
+- ✅ モード自動設定（DNA/アミノ酸）
+- ✅ Cloud Run Jobでのコード実行
+- ✅ 正解データとの自動照合
+- ✅ 遺伝子ごとの詳細検証結果表示
+- ✅ result.fastaダウンロード
+
+## 7. セキュリティ考慮事項
+
+- ユーザー提供コードを実行するため、Cloud Run Jobは最小権限で実行
+- answer.fastaは検証にのみ使用し、ユーザーへのダウンロードは不可
+- サービスアカウントの権限は必要最小限に制限
+- GCS バケットはuniform access controlで保護

@@ -6,7 +6,6 @@ import { referenceDatasets } from "@/lib/referenceDatasets";
 type FileUploaderProps = {
   onFilesChange: (files: {
     datasetId: string;
-    geneList: File | null;
     pythonCode: File | null;
     requirements: File | null;
   }) => void;
@@ -16,18 +15,16 @@ type FileUploaderProps = {
 export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps) {
   const [files, setFiles] = useState<{
     datasetId: string;
-    geneList: File | null;
     pythonCode: File | null;
     requirements: File | null;
   }>({
     datasetId: "",
-    geneList: null,
     pythonCode: null,
     requirements: null,
   });
 
   const handleFileChange = (
-    type: "geneList" | "pythonCode" | "requirements",
+    type: "pythonCode" | "requirements",
     file: File | null
   ) => {
     const newFiles = {
@@ -85,27 +82,11 @@ export function FileUploader({ onFilesChange, onModeChange }: FileUploaderProps)
             <br />
             FASTA: {selectedDataset.fastaObject}
             <br />
+            遺伝子リスト: {selectedDataset.genesObject}
+            <br />
             モード: {selectedDataset.mode === "dna" ? "DNA配列" : "アミノ酸配列"}
           </p>
         )}
-      </div>
-
-      <div>
-        <label
-          htmlFor="gene-list-file"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          遺伝子名リスト (.txt)
-        </label>
-        <input
-          id="gene-list-file"
-          type="file"
-          accept=".txt"
-          onChange={(e) =>
-            handleFileChange("geneList", e.target.files?.[0] || null)
-          }
-          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-        />
       </div>
 
       <div>
