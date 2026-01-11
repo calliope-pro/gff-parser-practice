@@ -118,6 +118,12 @@ export default function Home() {
         throw new Error("ジョブがタイムアウトしました");
       }
 
+      // ジョブ失敗チェック
+      if (jobStatus.statusData?.status === "failed") {
+        const errorMsg = jobStatus.statusData?.error || "ジョブが失敗しました";
+        throw new Error(`ジョブ実行エラー: ${errorMsg}`);
+      }
+
       const userLog = jobStatus.logs?.user || "";
       setOutput(userLog || "ユーザーコードのログがありません");
 
