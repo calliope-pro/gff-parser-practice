@@ -13,26 +13,29 @@
 
 ### 2.1 入力
 
-**入力（3種類 + データセット選択）**
-1. 参照データセット - GCSに配置済みのGFF/FASTA/正解データを選択
-   - **Yeast (S. cerevisiae)**: DNA配列抽出モード
+**入力（Pythonコード + データセット選択）**
+1. 参照データセット - GCSに配置済みのGFF/FASTA/遺伝子リスト/正解データを選択
+   - **Yeast (S. cerevisiae R64-1-1)**: DNA配列抽出モード
+     - 出力形式: 遺伝子名（例: `>YAL003W`）ごとにDNA配列
    - **Human (GRCh38 chr21)**: アミノ酸配列抽出モード
-2. 遺伝子名リストTXT (.txt) - 抽出対象の遺伝子名リスト
-3. Pythonコードファイル (.py) - ユーザーが作成した実行コード
-4. requirements.txt（任意）
+     - 出力形式: 転写産物名（例: `>rna80892`）ごとにアミノ酸配列（アイソフォーム分離）
+2. Pythonコードファイル (.py) - ユーザーが作成した実行コード
+3. requirements.txt（任意）
 
-**モード**
+**モードと参照データ**
 - データセット選択により自動設定（変更不可）
-- Yeast → DNA配列抽出
-- Human → アミノ酸配列抽出
+- Yeast → DNA配列抽出、遺伝子名で出力
+- Human → アミノ酸配列抽出、転写産物名で出力
 
 ### 2.2 実行
 
 - 「実行」ボタンをクリック
-- Vercel APIがGCSに入力ファイルを保存
+- Vercel APIがGCSにユーザーコード（user.py）を保存
 - Cloud Run JobでPythonコードを実行
-- 参照データ（GFF/FASTA）はGCSの固定パスから読み込み
-- 正解データ（answer.fasta）も自動的にダウンロードして検証用に配置
+- 参照データはすべてGCSから自動ダウンロード:
+  - GFF/FASTA（input.gff / input.fa）
+  - 遺伝子リスト（genes.txt）
+  - 正解データ（answer.fasta）
 
 ### 2.3 出力
 
@@ -54,11 +57,13 @@
 
 ### セクション構成
 1. **ヘッダー**: サービス名と説明
-2. **入力エリア**: データセット選択 + 3つのファイル入力（.txt, .py, requirements.txt）
-   - データセット選択時にモード（DNA/アミノ酸）を表示
-3. **実行ボタン**: 大きめで目立つボタン
-4. **結果表示エリア**: 標準出力、エラー、result.fastaダウンロード
-5. **検証結果エリア**: 正解/不正解、遺伝子ごとの詳細
+2. **課題説明セクション**: データセット、ファイル形式、実行環境、出力フォーマットの説明
+   - データセットごとの出力形式の違いを明示
+3. **入力エリア**: データセット選択 + 2つのファイル入力（.py, requirements.txt）
+   - データセット選択時に参照データパスとモードを表示
+4. **実行ボタン**: 大きめで目立つボタン
+5. **結果表示エリア**: 標準出力、エラー、result.fastaダウンロード
+6. **検証結果エリア**: 正解/不正解、遺伝子ごとの詳細
 
 ---
 
@@ -97,15 +102,29 @@ gff-parser-practice/
 ```
 
 ### Cloud Run Job
-- 参照データ（GFF/FASTA）と正解データ（answer.fasta）をGCSからダウンロード
-- ユーザー入力ファイル（user.py、genes.txt、requirements.txt）をGCSからダウンロード
+- 参照データをGCSからダウンロード:
+  - GFF/FASTA（input.gff / input.fa）
+  - 遺伝子リスト（genes.txt）
+  - 正解データ（answer.fasta）
+- ユーザー入力ファイルをGCSからダウンロード:
+  - user.py
+  - requirements.txt（存在する場合）
 - `/work` ディレクトリで実行
-- `OUTPUT_MODE` 環境変数（`dna` / `amino`）に応じて処理
-- 結果（result.fasta、ログ、status.json、answer.fasta）をGCSにアップロード
+- 環境変数:
+  - `REFERENCE_GFF_OBJECT`: GFF参照パス
+  - `REFERENCE_FASTA_OBJECT`: FASTA参照パス
+  - `REFERENCE_GENES_OBJECT`: 遺伝子リスト参照パス
+  - `REFERENCE_ANSWER_OBJECT`: 正解データパス
+  - `OUTPUT_MODE`: `dna` / `amino`
+- 結果をGCSにアップロード:
+  - result.fasta（ユーザー出力）
+  - answer.fasta（検証用）
+  - user.log（標準出力/エラー）
+  - status.json（実行結果）
 
 ### API
-- `POST /api/jobs`: 入力アップロード + Cloud Run Job起動
-- `GET /api/jobs/:jobId`: GCSの結果・ログを取得
+- `POST /api/jobs`: ユーザーコードアップロード + Cloud Run Job起動
+- `GET /api/jobs/:jobId`: GCSの結果・ログを取得して検証結果を返す
 
 ---
 

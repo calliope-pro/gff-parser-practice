@@ -173,8 +173,18 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">データセット</h3>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li><strong>S. cerevisiae R64-1-1</strong>: 酵母（パン酵母）のゲノムデータ（DNAモード）</li>
-                  <li><strong>GRCh38 chr21</strong>: ヒトの21番染色体のゲノムデータ（アミノ酸モード）</li>
+                  <li>
+                    <strong>S. cerevisiae R64-1-1</strong>: 酵母（パン酵母）のゲノムデータ
+                    <div className="ml-5 mt-1 text-xs">
+                      <span className="font-medium">出力形式:</span> 遺伝子名（例: <code className="bg-white px-1 rounded">YAL003W</code>）ごとにDNA配列を出力
+                    </div>
+                  </li>
+                  <li className="mt-2">
+                    <strong>GRCh38 chr21</strong>: ヒトの21番染色体のゲノムデータ
+                    <div className="ml-5 mt-1 text-xs">
+                      <span className="font-medium">出力形式:</span> 転写産物名（例: <code className="bg-white px-1 rounded">rna80892</code>）ごとにアミノ酸配列を出力（アイソフォームごとに分離）
+                    </div>
+                  </li>
                 </ul>
                 <p className="mt-2 text-xs text-gray-600">
                   選択したデータセットのGFF/FASTAファイルが <code className="bg-white px-1 rounded">input.gff</code> と <code className="bg-white px-1 rounded">input.fa</code> として配置されます。
@@ -201,16 +211,29 @@ export default function Home() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">出力フォーマット</h3>
-                <p>FASTA形式で出力してください：</p>
-                <pre className="bg-white p-2 rounded border border-gray-200 mt-1 text-xs overflow-x-auto">
-{`>遺伝子名
-配列データ...
->次の遺伝子名
-配列データ...`}
-                </pre>
-                <p className="mt-1 text-xs text-gray-600">
-                  ※ DNAモード: 塩基配列をそのまま出力 / アミノ酸モード: CDS領域を翻訳して出力
-                </p>
+                <p className="mb-2">FASTA形式で <code className="bg-white px-1 rounded">result.fasta</code> に出力してください。</p>
+                <div className="space-y-2">
+                  <div className="bg-green-50 p-2 rounded">
+                    <p className="text-xs font-semibold text-green-900 mb-1">S. cerevisiae (DNAモード)</p>
+                    <pre className="bg-white p-2 rounded border border-green-200 text-xs overflow-x-auto">
+{`>YAL003W
+ATGCGT...（DNA配列）
+>YAR068W
+ATGCGT...（DNA配列）`}
+                    </pre>
+                    <p className="mt-1 text-xs text-gray-600">遺伝子名をヘッダーとして、DNA配列を出力</p>
+                  </div>
+                  <div className="bg-green-50 p-2 rounded">
+                    <p className="text-xs font-semibold text-green-900 mb-1">GRCh38 chr21 (アミノ酸モード)</p>
+                    <pre className="bg-white p-2 rounded border border-green-200 text-xs overflow-x-auto">
+{`>rna80892
+MRLGSP...（アミノ酸配列）
+>rna80891
+MRLGSP...（アミノ酸配列）`}
+                    </pre>
+                    <p className="mt-1 text-xs text-gray-600">転写産物名をヘッダーとして、CDS領域を翻訳したアミノ酸配列を出力（アイソフォームは別エントリ）</p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>

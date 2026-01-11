@@ -131,28 +131,31 @@ yarn dev
   "label": "S. cerevisiae R64-1-1",
   "gffObject": "references/saccharomyces_cerevisiae_R64-1-1_20110208_annotation.gff",
   "fastaObject": "references/saccharomyces_cerevisiae_R64-1-1_20110208_sequences.fasta",
+  "genesObject": "references/genes_yeast.txt",
   "answerObject": "answers/yeast_answer.fasta",
   "mode": "dna"
 }
 ```
 
-- **yeast**: DNA配列抽出モード
+**データセット別の出力形式:**
+- **yeast (S. cerevisiae R64-1-1)**: DNA配列抽出モード
+  - 出力: 遺伝子名（例: `>YAL003W`）ごとにDNA配列を出力
 - **human (GRCh38 chr21)**: アミノ酸配列抽出モード
+  - 出力: 転写産物名（例: `>rna80892`）ごとにアミノ酸配列を出力
+  - アイソフォームは別エントリとして分離
 
 ## 実行時の入出力
 
 **入力:**
-- データセット選択（yeast / human）→ モードが自動設定される
-- 遺伝子名リスト（`.txt`）
+- データセット選択（yeast / human）→ モード・参照データが自動設定される
 - Pythonコード（`.py`）
 - requirements.txt（任意）
 
 **実行環境（/work）:**
-- `input.gff` - 参照GFFファイル
-- `input.fa` - 参照FASTAファイル
-- `genes.txt` - 遺伝子名リスト
+- `input.gff` - 参照GFFファイル（GCSから自動配置）
+- `input.fa` - 参照FASTAファイル（GCSから自動配置）
+- `genes.txt` - 遺伝子名リスト（GCSから自動配置）
 - `user.py` - ユーザーのPythonコード
-- 環境変数 `OUTPUT_MODE` - `dna` または `amino`
 
 **出力:**
 - `result.fasta` - ユーザーコードの出力（ダウンロード可能）
