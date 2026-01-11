@@ -1,8 +1,7 @@
 import json
 import os
 import subprocess
-import time
-import resource
+import re
 from pathlib import Path
 
 from google.cloud import storage
@@ -122,16 +121,41 @@ def main() -> None:
             env=base_env,
         )
 
-    start_time = time.time()
-    start_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    # /usr/bin/time を使ってメモリと時間を測定（出力をファイルに書き出す）
+    time_output_file = workdir / "time_output.txt"
+    time_result = subprocess.run(
+        ["/usr/bin/time", "-v", "-o", str(time_output_file), str(python_path), str(user_code_path)],
+        env=base_env,
+        cwd=base_env.get("WORKDIR", "."),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
-    user_result = run_command([str(python_path), str(user_code_path)], env=base_env)
+    # /usr/bin/time の出力から実行時間とメモリを抽出
+    execution_time = 0.0
+    max_memory_kb = 0
 
-    end_time = time.time()
-    end_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    if time_output_file.exists():
+        time_output = time_output_file.read_text()
 
-    execution_time = end_time - start_time
-    max_memory_kb = end_usage.ru_maxrss - start_usage.ru_maxrss
+        # "Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05" のようなフォーマット
+        elapsed_match = re.search(r"Elapsed.*?:\s*(\d+):(\d+\.\d+)", time_output)
+        if elapsed_match:
+            minutes = int(elapsed_match.group(1))
+            seconds = float(elapsed_match.group(2))
+            execution_time = minutes * 60 + seconds
+
+        # "Maximum resident set size (kbytes): 12345" のようなフォーマット
+        memory_match = re.search(r"Maximum resident set size.*?:\s*(\d+)", time_output)
+        if memory_match:
+            max_memory_kb = int(memory_match.group(1))
+
+    user_result = {
+        "code": time_result.returncode,
+        "stdout": time_result.stdout,
+        "stderr": time_result.stderr,
+    }
 
     status["user"] = user_result
     status["metrics"] = {

@@ -213,6 +213,7 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">実行環境</h3>
                 <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Python 3.11 / 1 vCPU / 4 GiB RAM</li>
                   <li>作業ディレクトリ: <code className="bg-white px-1 rounded">/work</code></li>
                   <li>入力ファイル: <code className="bg-white px-1 rounded">input.gff</code>, <code className="bg-white px-1 rounded">input.fa</code>, <code className="bg-white px-1 rounded">genes.txt</code> (すべて参照データセットから自動配置)</li>
                   <li>出力: <code className="bg-white px-1 rounded">result.fasta</code> に書き出す</li>

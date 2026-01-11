@@ -102,6 +102,10 @@ gff-parser-practice/
 ```
 
 ### Cloud Run Job
+- 実行環境:
+  - Python 3.11
+  - 1 vCPU
+  - 4 GiB RAM
 - 参照データをGCSからダウンロード:
   - GFF/FASTA（input.gff / input.fa）
   - 遺伝子リスト（genes.txt）

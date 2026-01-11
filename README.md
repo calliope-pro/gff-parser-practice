@@ -152,10 +152,14 @@ yarn dev
 - requirements.txt（任意）
 
 **実行環境（/work）:**
-- `input.gff` - 参照GFFファイル（GCSから自動配置）
-- `input.fa` - 参照FASTAファイル（GCSから自動配置）
-- `genes.txt` - 遺伝子名リスト（GCSから自動配置）
-- `user.py` - ユーザーのPythonコード
+- Python: 3.11
+- CPU: 1 vCPU
+- RAM: 4 GiB
+- 入力ファイル:
+  - `input.gff` - 参照GFFファイル（GCSから自動配置）
+  - `input.fa` - 参照FASTAファイル（GCSから自動配置）
+  - `genes.txt` - 遺伝子名リスト（GCSから自動配置）
+  - `user.py` - ユーザーのPythonコード
 
 **出力:**
 - `result.fasta` - ユーザーコードの出力（ダウンロード可能）
