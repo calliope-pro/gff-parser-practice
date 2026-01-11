@@ -7,7 +7,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY job/runner.py /app/runner.py
 
-RUN useradd -m runner && chown -R runner:runner /app
+RUN useradd -m runner && \
+    mkdir -p /work && \
+    chown -R runner:runner /app /work
 USER runner
 
 ENV PYTHONUNBUFFERED=1

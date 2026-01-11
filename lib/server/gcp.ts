@@ -8,6 +8,7 @@ type ServiceAccount = {
 type AccessTokenCache = {
   token: string;
   expiresAt: number;
+  scopes: string;
 };
 
 let cachedToken: AccessTokenCache | null = null;
@@ -33,7 +34,8 @@ function parseServiceAccount(): ServiceAccount {
 
 async function getAccessToken(scopes: string[]): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  if (cachedToken && cachedToken.expiresAt - 60 > now) {
+  const scopeString = scopes.join(" ");
+  if (cachedToken && cachedToken.expiresAt - 60 > now && cachedToken.scopes === scopeString) {
     return cachedToken.token;
   }
 
@@ -80,6 +82,7 @@ async function getAccessToken(scopes: string[]): Promise<string> {
   cachedToken = {
     token: tokenData.access_token,
     expiresAt: now + tokenData.expires_in,
+    scopes: scopeString,
   };
 
   return tokenData.access_token;
@@ -149,6 +152,12 @@ export async function runCloudRunJob(params: {
 }): Promise<void> {
   const token = await getAccessToken(["https://www.googleapis.com/auth/cloud-platform"]);
   const { projectId, region, jobName, env } = params;
+
+  const sa = parseServiceAccount();
+  console.log("[DEBUG] Service Account:", sa.client_email);
+  console.log("[DEBUG] Project ID:", projectId);
+  console.log("[DEBUG] Region:", region);
+  console.log("[DEBUG] Job Name:", jobName);
 
   const url = `https://run.googleapis.com/v2/projects/${encodeURIComponent(
     projectId
