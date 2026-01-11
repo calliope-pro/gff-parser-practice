@@ -33,13 +33,20 @@ export function ValidationDisplay({ result }: ValidationDisplayProps) {
             >
               {result.isCorrect ? "正解！" : "不正解"}
             </h3>
-            <p
+            <div
               className={`text-sm ${
                 result.isCorrect ? "text-green-700" : "text-red-700"
               }`}
             >
-              {result.correctGenes} / {result.totalGenes} 件正解
-            </p>
+              <p>正解: {result.correctGenes} / {result.totalGenes} 件</p>
+              {result.userTotalGenes !== result.totalGenes && (
+                <p className="text-xs mt-1">
+                  出力数: {result.userTotalGenes} 件
+                  {result.extraGenes > 0 && ` (不要: ${result.extraGenes}件)`}
+                  {result.missingGenes > 0 && ` (不足: ${result.missingGenes}件)`}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -26,6 +26,10 @@ export default function Home() {
     useState<ValidationResult | null>(null);
   const [answerAvailable, setAnswerAvailable] = useState<boolean | null>(null);
   const [resultDownloadUrl, setResultDownloadUrl] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<{
+    execution_time: number;
+    max_memory_mb: number;
+  } | null>(null);
 
   // ブラウザURLのクリーンアップ
   useEffect(() => {
@@ -61,6 +65,7 @@ export default function Home() {
     setValidationResult(null);
     setAnswerAvailable(null);
     setJobId(null);
+    setMetrics(null);
 
     try {
       setOutput("ジョブを起動中...");
@@ -115,6 +120,11 @@ export default function Home() {
 
       const userLog = jobStatus.logs?.user || "";
       setOutput(userLog || "ユーザーコードのログがありません");
+
+      // メトリクスを取得
+      if (jobStatus.statusData?.metrics) {
+        setMetrics(jobStatus.statusData.metrics);
+      }
 
       if (!jobStatus.result) {
         const statusInfo = jobStatus.statusData?.user;
@@ -265,6 +275,7 @@ MRLGSP...（アミノ酸配列）`}
               isLoading={isLoading}
               resultFileUrl={resultDownloadUrl}
               jobId={jobId}
+              metrics={metrics}
             />
           </section>
 

@@ -5,8 +5,11 @@
 export type ValidationResult = {
   isCorrect: boolean;
   totalGenes: number;
+  userTotalGenes: number;
   correctGenes: number;
   incorrectGenes: number;
+  missingGenes: number;
+  extraGenes: number;
   details: {
     geneName: string;
     isCorrect: boolean;
@@ -64,6 +67,8 @@ export function validateFasta(
   const details: ValidationResult["details"] = [];
   let correctCount = 0;
   let incorrectCount = 0;
+  let missingCount = 0;
+  let extraCount = 0;
 
   // 正解に含まれる全ての遺伝子をチェック
   for (const [geneName, correctSeq] of correctSequences) {
@@ -78,6 +83,7 @@ export function validateFasta(
         message: "配列が出力されていません",
       });
       incorrectCount++;
+      missingCount++;
     } else if (userSeq === correctSeq) {
       details.push({
         geneName,
@@ -110,17 +116,22 @@ export function validateFasta(
         message: "不要な遺伝子が含まれています",
       });
       incorrectCount++;
+      extraCount++;
     }
   }
 
   const totalGenes = correctSequences.size;
+  const userTotalGenes = userSequences.size;
   const isCorrect = correctCount === totalGenes && incorrectCount === 0;
 
   return {
     isCorrect,
     totalGenes,
+    userTotalGenes,
     correctGenes: correctCount,
     incorrectGenes: incorrectCount,
+    missingGenes: missingCount,
+    extraGenes: extraCount,
     details,
   };
 }

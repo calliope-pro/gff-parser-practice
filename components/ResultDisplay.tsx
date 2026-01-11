@@ -6,6 +6,10 @@ type ResultDisplayProps = {
   isLoading: boolean;
   resultFileUrl?: string | null;
   jobId?: string | null;
+  metrics?: {
+    execution_time: number;
+    max_memory_mb: number;
+  } | null;
 };
 
 export function ResultDisplay({
@@ -14,6 +18,7 @@ export function ResultDisplay({
   isLoading,
   resultFileUrl,
   jobId,
+  metrics,
 }: ResultDisplayProps) {
   if (isLoading) {
     return (
@@ -38,9 +43,21 @@ export function ResultDisplay({
       {output && (
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-2">標準出力</h3>
-          {jobId && (
-            <p className="mb-2 text-xs text-gray-500">ジョブID: {jobId}</p>
-          )}
+          <div className="flex items-center gap-4 mb-2">
+            {jobId && (
+              <p className="text-xs text-gray-500">ジョブID: {jobId}</p>
+            )}
+            {metrics && (
+              <div className="flex items-center gap-3 text-xs text-gray-600">
+                <span className="bg-blue-100 px-2 py-1 rounded">
+                  実行時間: {metrics.execution_time}秒
+                </span>
+                <span className="bg-purple-100 px-2 py-1 rounded">
+                  メモリ使用量: {metrics.max_memory_mb}MB
+                </span>
+              </div>
+            )}
+          </div>
           <pre className="bg-gray-50 border border-gray-300 rounded-lg p-4 text-sm text-gray-900 whitespace-pre-wrap overflow-x-auto">
             {output}
           </pre>

@@ -1,6 +1,8 @@
 import json
 import os
 import subprocess
+import time
+import resource
 from pathlib import Path
 
 from google.cloud import storage
@@ -120,8 +122,22 @@ def main() -> None:
             env=base_env,
         )
 
+    start_time = time.time()
+    start_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+
     user_result = run_command([str(python_path), str(user_code_path)], env=base_env)
+
+    end_time = time.time()
+    end_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+
+    execution_time = end_time - start_time
+    max_memory_kb = end_usage.ru_maxrss - start_usage.ru_maxrss
+
     status["user"] = user_result
+    status["metrics"] = {
+        "execution_time": round(execution_time, 3),
+        "max_memory_mb": round(max_memory_kb / 1024, 2),
+    }
     write_text(workdir / "user.log", str(user_result["stdout"]) + str(user_result["stderr"]))
 
     result_path = workdir / "result.fasta"
