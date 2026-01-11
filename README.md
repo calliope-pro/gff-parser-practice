@@ -8,7 +8,8 @@
 - フロント: Next.js（Vercel）
 - API: Next.js Route Handler → GCSに入力を保存 → Cloud Run Job起動
 - 実行: Cloud Run Job（`job/`）が GCS から入力を取得し `/work` で実行
-- 結果: `result.fasta` / `answer.fasta` / ログ / status.json を GCS に保存
+- 結果: `result.fasta` / ログ / status.json を GCS に保存
+- 検証: `answer.fasta` は別途 GCS に配置（ある場合のみ検証）
 
 ## セットアップ
 
@@ -122,7 +123,11 @@ yarn dev
 - 参照データ: GCS の固定パス（データセット選択で切替）
 - 入力ファイル: `genes.txt`, `user.py`, `requirements.txt`（任意）
 - 作業ディレクトリ: `/work`
-- 出力: `result.fasta`（ユーザー出力）, `answer.fasta`（正解）
+- 出力: `result.fasta`（ユーザー出力）
+- 検証用: `answer.fasta`（任意。存在しない場合は検証をスキップ）
+
+`answer.fasta` を使って検証する場合は、ジョブIDを使って以下に配置します。
+`gs://{GCS_BUCKET}/{GCS_JOB_PREFIX}/{jobId}/answer.fasta`
 
 ## 注意
 

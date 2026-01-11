@@ -5,6 +5,7 @@ type ResultDisplayProps = {
   error: string | null;
   isLoading: boolean;
   resultFileUrl?: string | null;
+  jobId?: string | null;
 };
 
 export function ResultDisplay({
@@ -12,6 +13,7 @@ export function ResultDisplay({
   error,
   isLoading,
   resultFileUrl,
+  jobId,
 }: ResultDisplayProps) {
   if (isLoading) {
     return (
@@ -36,6 +38,9 @@ export function ResultDisplay({
       {output && (
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-2">標準出力</h3>
+          {jobId && (
+            <p className="mb-2 text-xs text-gray-500">ジョブID: {jobId}</p>
+          )}
           <pre className="bg-gray-50 border border-gray-300 rounded-lg p-4 text-sm text-gray-900 whitespace-pre-wrap overflow-x-auto">
             {output}
           </pre>

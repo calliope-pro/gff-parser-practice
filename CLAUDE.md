@@ -29,13 +29,14 @@
 - Vercel APIがGCSに入力ファイルを保存
 - Cloud Run JobでPythonコードを実行
 - 参照データはGCSの固定パスから読み込み
+ - `answer.fasta` は必要に応じてGCSへ別途配置
 
 ### 2.3 出力
 
 - 標準出力（stdout）の表示
 - エラーメッセージ（stderr）の表示
 - 実行結果の可視化
-- `result.fasta` と `answer.fasta` の検証結果
+- 検証結果（`answer.fasta` がある場合のみ）
 
 ---
 
@@ -86,6 +87,7 @@ gff-parser-practice/
 - 参照データ（GFF/FASTA）はGCSの固定パスから取得
 - ジョブ入力と結果はGCSに保存
 - `OUTPUT_MODE` に応じてDNA/アミノ酸を出力
+- `answer.fasta` が存在する場合のみ検証を実施
 
 ### API
 - `POST /api/jobs`: 入力アップロード + Cloud Run Job起動

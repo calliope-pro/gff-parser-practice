@@ -61,10 +61,8 @@ def main() -> None:
     genes_object = f"{base_prefix}/genes.txt"
     requirements_object = f"{base_prefix}/requirements.txt"
     result_object = f"{base_prefix}/result.fasta"
-    answer_object = f"{base_prefix}/answer.fasta"
     status_object = f"{base_prefix}/status.json"
     user_log_object = f"{base_prefix}/user.log"
-    answer_log_object = f"{base_prefix}/answer.log"
 
     workdir = Path("/work")
     workdir.mkdir(parents=True, exist_ok=True)
@@ -90,26 +88,20 @@ def main() -> None:
     status: dict[str, object] = {
         "jobId": job_id,
         "mode": mode,
-        "answer": {},
+        "answer": {"skipped": True},
         "user": {},
     }
 
-    answer_env = {
+    base_env = {
         **os.environ,
         "OUTPUT_MODE": mode,
         "WORKDIR": str(workdir),
     }
-    answer_result = run_command(
-        ["python", "/app/answer_generator.py"],
-        env=answer_env,
-    )
-    status["answer"] = answer_result
-    write_text(workdir / "answer.log", answer_result["stdout"] + answer_result["stderr"])
 
     venv_path = workdir / "venv"
     run_command(
         ["python", "-m", "venv", "--system-site-packages", str(venv_path)],
-        env=answer_env,
+        env=base_env,
     )
 
     pip_path = venv_path / "bin" / "pip"
@@ -118,30 +110,20 @@ def main() -> None:
     if has_requirements:
         run_command(
             [str(pip_path), "install", "--no-cache-dir", "-r", str(requirements_path)],
-            env=answer_env,
+            env=base_env,
         )
 
-    user_env = {
-        **os.environ,
-        "OUTPUT_MODE": mode,
-        "WORKDIR": str(workdir),
-    }
-    user_result = run_command([str(python_path), str(user_code_path)], env=user_env)
+    user_result = run_command([str(python_path), str(user_code_path)], env=base_env)
     status["user"] = user_result
     write_text(workdir / "user.log", user_result["stdout"] + user_result["stderr"])
 
     result_path = workdir / "result.fasta"
-    answer_path = workdir / "answer.fasta"
-
-    if answer_path.exists():
-        upload_blob(client, bucket, answer_path, answer_object)
     if result_path.exists():
         upload_blob(client, bucket, result_path, result_object)
 
     write_text(workdir / "status.json", json.dumps(status, ensure_ascii=True))
     upload_blob(client, bucket, workdir / "status.json", status_object)
     upload_blob(client, bucket, workdir / "user.log", user_log_object)
-    upload_blob(client, bucket, workdir / "answer.log", answer_log_object)
 
 
 if __name__ == "__main__":

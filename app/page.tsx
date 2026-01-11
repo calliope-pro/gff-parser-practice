@@ -24,8 +24,10 @@ export default function Home() {
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [validationResult, setValidationResult] =
     useState<ValidationResult | null>(null);
+  const [answerAvailable, setAnswerAvailable] = useState<boolean | null>(null);
   const [resultDownloadUrl, setResultDownloadUrl] = useState<string | null>(null);
 
   // ブラウザURLのクリーンアップ
@@ -56,6 +58,8 @@ export default function Home() {
     setOutput(null);
     setError(null);
     setValidationResult(null);
+    setAnswerAvailable(null);
+    setJobId(null);
 
     try {
       setOutput("ジョブを起動中...");
@@ -81,6 +85,7 @@ export default function Home() {
 
       const submitData = await submitResponse.json();
       const jobId = submitData.jobId as string;
+      setJobId(jobId);
       const pollIntervalMs = 3000;
       const timeoutMs = 15 * 60 * 1000;
       const start = Date.now();
@@ -111,20 +116,26 @@ export default function Home() {
       const userLog = jobStatus.logs?.user || "";
       setOutput(userLog || "ユーザーコードのログがありません");
 
-      if (!jobStatus.result || !jobStatus.answer) {
+      if (!jobStatus.result) {
         const statusInfo = jobStatus.statusData?.user;
         const stderr = statusInfo?.stderr ? `\n${statusInfo.stderr}` : "";
         throw new Error(`result.fasta が生成されていません${stderr}`);
       }
 
       const userResult = String(jobStatus.result);
-      const answerResult = String(jobStatus.answer);
       const blob = new Blob([userResult], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       setResultDownloadUrl(url);
 
-      const validation = validateFasta(userResult, answerResult);
-      setValidationResult(validation);
+      if (jobStatus.answer) {
+        const answerResult = String(jobStatus.answer);
+        const validation = validateFasta(userResult, answerResult);
+        setValidationResult(validation);
+        setAnswerAvailable(true);
+      } else {
+        setValidationResult(null);
+        setAnswerAvailable(false);
+      }
     } catch (err) {
       setError(String(err));
     } finally {
@@ -182,8 +193,17 @@ export default function Home() {
               error={error}
               isLoading={isLoading}
               resultFileUrl={resultDownloadUrl}
+              jobId={jobId}
             />
           </section>
+
+          {answerAvailable === false && (
+            <section>
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                answer.fasta が未配置のため検証をスキップしました。
+              </div>
+            </section>
+          )}
 
           {validationResult && (
             <section>
