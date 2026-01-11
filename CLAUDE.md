@@ -4,8 +4,8 @@
 
 * **サービス名**: GFF Parser Practice
 * **目的**: Python初学者が遺伝子配列抽出コードを書いて動作確認できる研修・教育用Webアプリ
-* **技術スタック**: Next.js 15 (App Router) + TypeScript + Tailwind CSS + Pyodide
-* **実行環境**: ブラウザ上でPythonコードを実行
+* **技術スタック**: Next.js 16 (App Router) + TypeScript + Tailwind CSS
+* **実行環境**: Cloud Run Job + GCS
 
 ---
 
@@ -13,11 +13,11 @@
 
 ### 2.1 入力
 
-**ファイルアップロード（4種類）**
-1. FASTAファイル (.fa) - DNA配列データ
-2. GFFファイル (.gff) - 遺伝子アノテーション情報
-3. 遺伝子名リストTXT (.txt) - 抽出対象の遺伝子名リスト
-4. Pythonコードファイル (.py) - ユーザーが作成した実行コード
+**入力（3種類 + データセット選択）**
+1. 参照データセット - GCSに配置済みのGFF/FASTAを選択
+2. 遺伝子名リストTXT (.txt) - 抽出対象の遺伝子名リスト
+3. Pythonコードファイル (.py) - ユーザーが作成した実行コード
+4. requirements.txt（任意）
 
 **モード選択**
 - DNA配列抽出モード
@@ -26,15 +26,16 @@
 ### 2.2 実行
 
 - 「実行」ボタンをクリック
-- Pyodideでブラウザ上でPythonコードを実行
-- 入力ファイルをPyodide仮想ファイルシステムに配置
-- ユーザーのPythonコードを実行
+- Vercel APIがGCSに入力ファイルを保存
+- Cloud Run JobでPythonコードを実行
+- 参照データはGCSの固定パスから読み込み
 
 ### 2.3 出力
 
 - 標準出力（stdout）の表示
 - エラーメッセージ（stderr）の表示
 - 実行結果の可視化
+- `result.fasta` と `answer.fasta` の検証結果
 
 ---
 
@@ -46,7 +47,7 @@
 
 ### セクション構成
 1. **ヘッダー**: サービス名と簡単な説明
-2. **ファイルアップロードエリア**: 4つのファイル入力（.fa, .gff, .txt, .py）
+2. **入力エリア**: データセット選択 + 3つのファイル入力（.txt, .py, requirements.txt）
 3. **モード選択**: ラジオボタンまたはトグル（DNA / アミノ酸）
 4. **実行ボタン**: 大きめで目立つボタン
 5. **結果表示エリア**: 出力とエラーを分けて表示
@@ -59,22 +60,36 @@
 ```
 gff-parser-practice/
 ├── app/
+│   ├── api/
+│   │   └── jobs/         # ジョブ起動・ステータス取得
 │   ├── page.tsx          # メインページ
 │   └── layout.tsx
 ├── components/
-│   ├── FileUploader.tsx  # ファイルアップロードコンポーネント
+│   ├── FileUploader.tsx  # 入力コンポーネント
 │   ├── ModeSelector.tsx  # DNA/アミノ酸モード選択
-│   └── ResultDisplay.tsx # 結果表示
+│   ├── ResultDisplay.tsx # 結果表示
+│   └── ValidationDisplay.tsx
+├── data/
+│   └── reference-datasets.json # データセット一覧
+├── job/
+│   ├── runner.py         # Cloud Run Jobの実行スクリプト
+│   └── Dockerfile
 ├── lib/
-│   └── pyodide.ts        # Pyodide初期化・実行ユーティリティ
+│   ├── referenceDatasets.ts
+│   ├── validator.ts
+│   └── server/
+│       └── gcp.ts
 └── ...
 ```
 
-### Pyodide統合
-- Pyodideはクライアントサイドでのみ動作
-- 初回ロード時にPyodideを初期化（遅延読み込み可）
-- ファイルは仮想ファイルシステム（FS API）に書き込み
-- .pyファイルの内容を読み込んで実行
+### Cloud Run Job
+- 参照データ（GFF/FASTA）はGCSの固定パスから取得
+- ジョブ入力と結果はGCSに保存
+- `OUTPUT_MODE` に応じてDNA/アミノ酸を出力
+
+### API
+- `POST /api/jobs`: 入力アップロード + Cloud Run Job起動
+- `GET /api/jobs/:jobId`: GCSの結果・ログを取得
 
 ---
 
@@ -87,9 +102,6 @@ gff-parser-practice/
 
 ---
 
-## 6. 今後の拡張可能性（初期実装では不要）
+## 6. 今後の拡張可能性
 
-- サンプルコード提供
-- 実行履歴の保存
-- テストケースの提供
 - 正解データとの照合機能

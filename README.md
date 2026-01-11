@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GFF Parser Practice
 
-## Getting Started
+教育用途の遺伝子配列抽出トレーニングツール。  
+ユーザーがアップロードした Python コードを Cloud Run Job で実行し、GCS の参照データと照合します。
 
-First, run the development server:
+## 仕組み
 
+- フロント: Next.js（Vercel）
+- API: Next.js Route Handler → GCSに入力を保存 → Cloud Run Job起動
+- 実行: Cloud Run Job（`job/`）が GCS から入力を取得し `/work` で実行
+- 結果: `result.fasta` / `answer.fasta` / ログ / status.json を GCS に保存
+
+## セットアップ
+
+### 0) GCPの設定
+
+最小構成の手順です。
+
+#### 0-1. プロジェクト作成 + 課金有効化
+GCP Consoleで新規プロジェクトを作成し、課金アカウントを紐付けます。
+
+#### 0-2. 必要APIの有効化
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com \
+  storage.googleapis.com \
+  iam.googleapis.com \
+  serviceusage.googleapis.com
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+#### 0-3. GCSバケット作成
+```bash
+gcloud storage buckets create gs://YOUR_BUCKET \
+  --location=asia-northeast1 \
+  --uniform-bucket-level-access
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### 0-4. 参照データをGCSへアップロード
+```bash
+gcloud storage cp examples/ref_GRCh38_scaffolds.gff3 gs://YOUR_BUCKET/references/
+gcloud storage cp examples/hs_ref_GRCh38_chr21.fa gs://YOUR_BUCKET/references/
+```
+`data/reference-datasets.json` の `gffObject` / `fastaObject` をこのパスに合わせます。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+#### 0-5. サービスアカウント作成
+**Vercel用（API）**: Cloud Run Job起動 + GCS書き込み  
+**ジョブ実行用**: GCS読み書き
 
-## Learn More
+```bash
+gcloud iam service-accounts create vercel-api
+gcloud projects add-iam-policy-binding YOUR_PROJECT \
+  --member="serviceAccount:vercel-api@YOUR_PROJECT.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+gcloud projects add-iam-policy-binding YOUR_PROJECT \
+  --member="serviceAccount:vercel-api@YOUR_PROJECT.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+gcloud projects add-iam-policy-binding YOUR_PROJECT \
+  --member="serviceAccount:vercel-api@YOUR_PROJECT.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
 
-To learn more about Next.js, take a look at the following resources:
+gcloud iam service-accounts create job-runtime
+gcloud projects add-iam-policy-binding YOUR_PROJECT \
+  --member="serviceAccount:job-runtime@YOUR_PROJECT.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### 0-6. Cloud Run Job作成
+```bash
+gcloud artifacts repositories create gff-runner \
+  --repository-format=docker \
+  --location=asia-northeast1
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+gcloud builds submit \
+  --tag asia-northeast1-docker.pkg.dev/YOUR_PROJECT/gff-runner/gff-runner:latest .
 
-## Deploy on Vercel
+gcloud run jobs create gff-parser-job \
+  --image asia-northeast1-docker.pkg.dev/YOUR_PROJECT/gff-runner/gff-runner:latest \
+  --region asia-northeast1 \
+  --service-account job-runtime@YOUR_PROJECT.iam.gserviceaccount.com
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### 0-7. Vercelの環境変数
+`.env.sample` に合わせて設定します。  
+`GCP_SERVICE_ACCOUNT_KEY_JSON` は **vercel-api** のJSONキー全文を貼り付けます。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 1) GCSに参照データを配置
+
+GFF/FASTA を GCS にアップロードし、`data/reference-datasets.json` に対応するオブジェクト名を設定します。
+
+例:
+- `references/ref_GRCh38_scaffolds.gff3`
+- `references/hs_ref_GRCh38_chr21.fa`
+
+### 2) Cloud Run Job をデプロイ
+
+`job/Dockerfile` を使って Cloud Run Job を作成します。  
+実行用サービスアカウントに GCS の読み書き権限を付与してください。
+
+### 3) 環境変数
+
+`.env.sample` を参照して Vercel / ローカルに設定します。
+
+必要な変数:
+- `GCP_PROJECT_ID`
+- `GCP_REGION`
+- `GCP_SERVICE_ACCOUNT_KEY_JSON`
+- `CLOUD_RUN_JOB_NAME`
+- `GCS_BUCKET`
+- `GCS_JOB_PREFIX`（任意）
+
+### 4) ローカル起動
+
+```bash
+yarn install
+yarn dev
+```
+
+## 実行時の入出力
+
+- 参照データ: GCS の固定パス（データセット選択で切替）
+- 入力ファイル: `genes.txt`, `user.py`, `requirements.txt`（任意）
+- 作業ディレクトリ: `/work`
+- 出力: `result.fasta`（ユーザー出力）, `answer.fasta`（正解）
+
+## 注意
+
+ユーザー提供コードを実行するため、Cloud Run Job の権限と実行制限は最小化してください。
